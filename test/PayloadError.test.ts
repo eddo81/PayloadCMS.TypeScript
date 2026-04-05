@@ -1,110 +1,191 @@
-import { PayloadError } from '../public/errors/PayloadError.ts';
+import { PayloadError } from '../public/PayloadError.ts';
 import { TestHarness } from './TestHarness.ts';
 
 const harness = new TestHarness();
 
-// ── cause is not a navigable object ──────────────────────────────
+// ── body is null or non-JSON ──────────────────────────────────────
 
-harness.add('getDetails() returns empty array when cause is null', () => {
-  const error = new PayloadError({ statusCode: 400, cause: null });
+harness.add('result is empty when body is undefined', () => {
+  const error = new PayloadError({ statusCode: 400 });
 
-  TestHarness.assertEqual(error.getDetails(), []);
+  TestHarness.assertEqual(error.result, []);
 });
 
-harness.add('getDetails() returns empty array when cause is not an object', () => {
-  const error = new PayloadError({ statusCode: 400, cause: 'unexpected string' });
+harness.add('result is empty when body is not JSON', () => {
+  const error = new PayloadError({ statusCode: 400, body: 'Internal Server Error' });
 
-  TestHarness.assertEqual(error.getDetails(), []);
+  TestHarness.assertEqual(error.result, []);
 });
 
-// ── errors array ──────────────────────────────────────────────────
+harness.add('result is empty when body has no errors key', () => {
+  const error = new PayloadError({ statusCode: 400, body: JSON.stringify({ status: 400 }) });
 
-harness.add('getDetails() extracts message and field from errors array', () => {
+  TestHarness.assertEqual(error.result, []);
+});
+
+harness.add('result is empty when errors array is empty', () => {
+  const error = new PayloadError({ statusCode: 400, body: JSON.stringify({ errors: [] }) });
+
+  TestHarness.assertEqual(error.result, []);
+});
+
+// ── base fields ───────────────────────────────────────────────────
+
+harness.add('result populates name', () => {
   const error = new PayloadError({
     statusCode: 400,
-    cause: {
-      errors: [
-        { message: 'The following field has failed validation: email', field: 'email' },
-      ],
-    },
+    body: JSON.stringify({ errors: [{ name: 'ValidationError', message: 'The following field is invalid: title' }] }),
   });
 
-  const details = error.getDetails();
-
-  TestHarness.assertEqual(details.length, 1);
-  TestHarness.assertEqual(details[0].message, 'The following field has failed validation: email');
-  TestHarness.assertEqual(details[0].field, 'email');
+  TestHarness.assertEqual(error.result.length, 1);
+  TestHarness.assertEqual(error.result[0].name, 'ValidationError');
 });
 
-harness.add('getDetails() returns null field when field is absent from errors array item', () => {
+harness.add('result populates message', () => {
+  const error = new PayloadError({
+    statusCode: 403,
+    body: JSON.stringify({ errors: [{ name: 'Forbidden', message: 'You are not allowed to perform this action.' }] }),
+  });
+
+  TestHarness.assertEqual(error.result[0].message, 'You are not allowed to perform this action.');
+});
+
+harness.add('result populates field for Mongoose validation items', () => {
   const error = new PayloadError({
     statusCode: 400,
-    cause: {
+    body: JSON.stringify({ errors: [{ message: 'Value must be unique', field: 'email' }] }),
+  });
+
+  TestHarness.assertEqual(error.result[0].field, 'email');
+});
+
+harness.add('name is undefined when absent', () => {
+  const error = new PayloadError({
+    statusCode: 400,
+    body: JSON.stringify({ errors: [{ message: 'Something went wrong' }] }),
+  });
+
+  TestHarness.assertEqual(error.result[0].name, undefined);
+});
+
+harness.add('field is undefined when absent', () => {
+  const error = new PayloadError({
+    statusCode: 403,
+    body: JSON.stringify({ errors: [{ name: 'Forbidden', message: 'No access.' }] }),
+  });
+
+  TestHarness.assertEqual(error.result[0].field, undefined);
+});
+
+// ── json escape hatch ─────────────────────────────────────────────
+
+harness.add('json contains raw entry including data block', () => {
+  const error = new PayloadError({
+    statusCode: 400,
+    body: JSON.stringify({
+      errors: [{
+        name: 'ValidationError',
+        message: 'The following field is invalid: title',
+        data: {
+          collection: 'posts',
+          errors: [{ message: 'Required', path: 'title' }],
+        },
+      }],
+    }),
+  });
+
+  TestHarness.assertEqual('data' in error.result[0].json, true);
+});
+
+harness.add('json allows consumer to read data block', () => {
+  const error = new PayloadError({
+    statusCode: 400,
+    body: JSON.stringify({
+      errors: [{
+        name: 'ValidationError',
+        message: 'The following field is invalid: title',
+        data: {
+          collection: 'posts',
+          errors: [{ message: 'Required', path: 'title' }],
+        },
+      }],
+    }),
+  });
+
+  const data = error.result[0].json['data'] as Record<string, unknown>;
+
+  TestHarness.assertEqual(data['collection'], 'posts');
+});
+
+// ── multiple errors ───────────────────────────────────────────────
+
+harness.add('result contains one entry per errors[] item', () => {
+  const error = new PayloadError({
+    statusCode: 400,
+    body: JSON.stringify({
       errors: [
+        { name: 'Forbidden', message: 'No access.' },
         { message: 'Something went wrong' },
       ],
-    },
+    }),
   });
 
-  const details = error.getDetails();
-
-  TestHarness.assertEqual(details.length, 1);
-  TestHarness.assertEqual(details[0].message, 'Something went wrong');
-  TestHarness.assertEqual(details[0].field, undefined);
+  TestHarness.assertEqual(error.result.length, 2);
+  TestHarness.assertEqual(error.result[0].name, 'Forbidden');
+  TestHarness.assertEqual(error.result[1].name, undefined);
 });
 
-harness.add('getDetails() skips invalid items in errors array', () => {
+harness.add('null items in errors array are skipped', () => {
   const error = new PayloadError({
     statusCode: 400,
-    cause: {
+    body: JSON.stringify({
       errors: [
         null,
-        { message: 'Valid error', field: 'email' },
-        { field: 'password' },
+        { name: 'Forbidden', message: 'No access.' },
       ],
-    },
+    }),
   });
 
-  const details = error.getDetails();
-
-  TestHarness.assertEqual(details.length, 1);
-  TestHarness.assertEqual(details[0].message, 'Valid error');
-  TestHarness.assertEqual(details[0].field, 'email');
+  TestHarness.assertEqual(error.result.length, 1);
+  TestHarness.assertEqual(error.result[0].name, 'Forbidden');
 });
 
-harness.add('getDetails() returns empty array when errors array is empty', () => {
+// ── body and serverStack passthrough ─────────────────────────────
+
+harness.add('body is preserved verbatim', () => {
+  const body = JSON.stringify({ errors: [{ name: 'Forbidden', message: 'No access.' }] });
+  const error = new PayloadError({ statusCode: 403, body });
+
+  TestHarness.assertEqual(error.body, body);
+});
+
+harness.add('serverStack is undefined when absent', () => {
+  const error = new PayloadError({ statusCode: 400, body: JSON.stringify({ errors: [] }) });
+
+  TestHarness.assertEqual(error.serverStack, undefined);
+});
+
+harness.add('serverStack is populated from body', () => {
   const error = new PayloadError({
     statusCode: 400,
-    cause: { errors: [] },
+    body: JSON.stringify({ errors: [], stack: 'Error\n    at Object.<anonymous>' }),
   });
 
-  TestHarness.assertEqual(error.getDetails(), []);
+  TestHarness.assertEqual(error.serverStack, 'Error\n    at Object.<anonymous>');
 });
 
-// ── top-level message fallback ────────────────────────────────────
+// ── statusCode and message ────────────────────────────────────────
 
-harness.add('getDetails() returns single item from top-level message with no field', () => {
-  const error = new PayloadError({
-    statusCode: 401,
-    cause: { message: 'You are not allowed to perform this action.' },
-  });
+harness.add('statusCode is set', () => {
+  const error = new PayloadError({ statusCode: 422 });
 
-  const details = error.getDetails();
-
-  TestHarness.assertEqual(details.length, 1);
-  TestHarness.assertEqual(details[0].message, 'You are not allowed to perform this action.');
-  TestHarness.assertEqual(details[0].field, undefined);
+  TestHarness.assertEqual(error.statusCode, 422);
 });
 
-// ── unrecognised shape ────────────────────────────────────────────
+harness.add('message defaults to status code message', () => {
+  const error = new PayloadError({ statusCode: 404 });
 
-harness.add('getDetails() returns empty array when cause has no errors or message', () => {
-  const error = new PayloadError({
-    statusCode: 400,
-    cause: { status: 400 },
-  });
-
-  TestHarness.assertEqual(error.getDetails(), []);
+  TestHarness.assertEqual(error.message, '[PayloadError] Request failed with status: 404');
 });
 
 export async function testPayloadError() {

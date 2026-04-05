@@ -922,6 +922,19 @@ Returned by paginated operations (`find`, `update`, `delete`, `findVersions`).
 | `ResetPasswordResultDTO` | `resetPassword()` | `user`, `token` |
 | `MessageDTO` | `forgotPassword()`, `verifyEmail()`, `logout()`, `unlock()` | `message` |
 
+### ErrorResultDTO
+
+Represents one entry in the `errors[]` array from a failed Payload response. Payload's error shape is intentionally dynamic — only the base fields below are guaranteed across all error types. The `json` property gives access to the full raw entry, including the `data` block present on `ValidationError` and `APIError` responses.
+
+See [Error Handling](#error-handling) for usage examples.
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string \| undefined` | The error class name (e.g. `"ValidationError"`, `"Forbidden"`). Sourced from `errors[n].name`. |
+| `message` | `string \| undefined` | The human-readable error message. Sourced from `errors[n].message`. |
+| `field` | `string \| undefined` | The field path associated with the error. Set on Mongoose validation items only. |
+| `json` | `Record<string, unknown>` | The full raw JSON for this `errors[n]` entry. |
+
 ---
 
 ## Error Handling
@@ -932,9 +945,9 @@ Returned by paginated operations (`find`, `update`, `delete`, `findVersions`).
 class PayloadError extends Error {
   readonly statusCode: number;
   readonly response: Response | undefined;
-  readonly cause: unknown;
-
-  getDetails(): ErrorDetail[]
+  readonly body: string | undefined;
+  readonly serverStack: string | undefined;
+  readonly result: ErrorResultDTO[];
 }
 ```
 
@@ -942,25 +955,14 @@ class PayloadError extends Error {
 |----------|------|-------------|
 | `statusCode` | `number` | HTTP status code. |
 | `response` | `Response \| undefined` | The original `Response` object. |
-| `message` | `string` | Error message. |
-| `cause` | `unknown` | The parsed JSON error body (if available). |
+| `message` | `string` | Human-readable status code message (from `Error`). |
+| `body` | `string \| undefined` | The raw unparsed JSON response body, if available. |
+| `serverStack` | `string \| undefined` | Server-side stack trace. Payload includes this in development mode only. |
+| `result` | `ErrorResultDTO[]` | Parsed entries from `errors[]` in the response body. |
 
-### getDetails()
+Each entry in `result` is an [`ErrorResultDTO`](#errorresultdto).
 
-Extracts structured error entries from the response body. Navigates `cause["errors"]` for validation-style errors (e.g. duplicate email, missing required field), or falls back to a top-level `cause["message"]` for simpler error shapes (e.g. auth errors). Returns an empty array if no recognisable error structure is found.
-
-```typescript
-getDetails(): ErrorDetail[]
-```
-
-### ErrorDetail
-
-Represents a single error entry returned by `getDetails()`.
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `message` | `string` | The human-readable error message. |
-| `field` | `string \| undefined` | The field name associated with the error, if any. |
+### Basic usage
 
 ```typescript
 import { PayloadError } from 'payload-cms-http-client';
@@ -972,12 +974,86 @@ catch (error) {
   if (error instanceof PayloadError) {
     console.log(`Status: ${error.statusCode}`);
 
-    for (const detail of error.getDetails()) {
-      console.log(`${detail.field ?? 'general'}: ${detail.message}`);
+    for (const entry of error.result) {
+      console.log(`${entry.name ?? 'error'}: ${entry.message}`);
     }
   }
   else {
     // Network failure, timeout, or parsing error
+  }
+}
+```
+
+### Accessing richer error data via json
+
+Payload's `ValidationError` responses include a `data` block with field-level detail. The library does not model this automatically — define your own types and map from the `json` escape hatch:
+
+```typescript
+interface ValidationFieldError {
+  message: string;
+  path: string | undefined;
+}
+
+interface ValidationError {
+  collection: string | undefined;
+  global: string | undefined;
+  id: string | undefined;
+  message: string | undefined;
+  fieldErrors: ValidationFieldError[];
+}
+
+function fromJson(entry: ErrorResultDTO): ValidationError | null {
+  if (entry.name !== 'ValidationError') {
+    return null;
+  }
+
+  const data = entry.json['data'] as Record<string, unknown> | undefined;
+
+  if (typeof data !== 'object' || data === null) {
+    return null;
+  }
+
+  const fieldErrors: ValidationFieldError[] = [];
+
+  if (Array.isArray(data['errors'])) {
+    for (const item of data['errors']) {
+      const fieldJson = item as Record<string, unknown>;
+      fieldErrors.push({
+        message: fieldJson['message'] as string,
+        path: typeof fieldJson['path'] === 'string' ? fieldJson['path'] : undefined,
+      });
+    }
+  }
+
+  return {
+    collection: typeof data['collection'] === 'string' ? data['collection'] : undefined,
+    global: typeof data['global'] === 'string' ? data['global'] : undefined,
+    id: data['id'] != null ? String(data['id']) : undefined,
+    message: entry.message,
+    fieldErrors,
+  };
+}
+```
+
+Then use it when catching a `PayloadError`:
+
+```typescript
+catch (error) {
+  if (error instanceof PayloadError) {
+    for (const entry of error.result) {
+      const validationError = fromJson(entry);
+
+      if (validationError === null) {
+        console.log(`${entry.name ?? 'error'}: ${entry.message}`);
+        continue;
+      }
+
+      console.log(`Validation failed on '${validationError.collection ?? validationError.global}':`);
+
+      for (const fieldError of validationError.fieldErrors) {
+        console.log(`  ${fieldError.path}: ${fieldError.message}`);
+      }
+    }
   }
 }
 ```

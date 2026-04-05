@@ -6,8 +6,8 @@ import { MeResultDTO } from "./models/auth/MeResultDTO.js";
 import { RefreshResultDTO } from "./models/auth/RefreshResultDTO.js";
 import { ResetPasswordResultDTO } from "./models/auth/ResetPasswordResultDTO.js";
 import { MessageDTO } from "./models/auth/MessageDTO.js";
-import { PayloadError } from "./errors/PayloadError.js";
-import { QueryBuilder } from "./QueryBuilder.js";
+import { PayloadError } from "./PayloadError.js";
+import { QueryBuilder } from "./query/QueryBuilder.js";
 import { QueryStringEncoder } from "../internal/utils/QueryStringEncoder.js";
 import { ApiKeyAuth } from "./config/ApiKeyAuth.js";
 import { JwtAuth } from "./config/JwtAuth.js";
@@ -213,15 +213,15 @@ export class PayloadSDK {
 
       text = await response.text();
 
-      json = JsonParser.parse(text);
-
-      if(!response.ok) {
+      if (!response.ok) {
         throw new PayloadError({
           statusCode: response.status,
           response,
-          cause: json
+          body: text.length > 0 ? text : undefined,
         });
       }
+
+      json = JsonParser.parse(text);
 
       return json;
     }

@@ -1,7 +1,7 @@
-import { JoinClause } from "../internal/JoinClause.js";
+import { JoinClause } from "../../internal/JoinClause.js";
 import { WhereBuilder } from "./WhereBuilder.js";
-import type { Operator } from "./enums/Operator.js";
-import type { Json, JsonValue } from "../types/Json.js";
+import type { Operator } from "../enums/Operator.js";
+import type { Json, JsonValue } from "../../types/Json.js";
 
 /**
  * Collects and composes `Join Field` query operations.

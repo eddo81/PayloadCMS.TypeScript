@@ -1,8 +1,8 @@
-import type { Operator } from "./enums/Operator.js";
-import type { JsonValue } from "../types/Json.js";
+import type { Operator } from "../enums/Operator.js";
+import type { JsonValue } from "../../types/Json.js";
 import { WhereBuilder } from "./WhereBuilder.js";
 import { JoinBuilder } from "./JoinBuilder.js";
-import type { Json } from "../types/Json.js";
+import type { Json } from "../../types/Json.js";
 
 /**
  * Fluent builder for Payload CMS REST API query parameters.

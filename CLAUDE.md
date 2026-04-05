@@ -20,14 +20,18 @@ types/                     # TS-only type aliases (NO equivalent in C#/Dart)
 │   └── Json.ts            # Json, JsonValue, JsonObject, JsonArray, JsonPrimitive
 public/                    # Consumer-facing API surface (exported, 1:1 portable)
 ├── config/                # Auth credentials (ApiKeyAuth, JwtAuth)
-├── models/                # DTOs with fromJson factory methods
 ├── enums/                 # String enums (Operator, HttpMethod)
+├── models/                # DTOs with fromJson factory methods
+│   ├── auth/              # Auth DTOs
+│   ├── collection/        # Collection DTOs
+│   └── errors/            # Error DTOs (ErrorResultDTO)
+├── query/                 # Fluent query builders
+│   ├── QueryBuilder.ts    # Facade over WhereBuilder + JoinBuilder
+│   ├── WhereBuilder.ts    # Where clause composition
+│   └── JoinBuilder.ts     # Join clause composition
 ├── upload/                # File upload (FileUpload)
-├── PayloadSDK.ts          # Main HTTP client
-├── QueryBuilder.ts        # Fluent query builder facade
-├── WhereBuilder.ts        # Where clause composition
-├── JoinBuilder.ts         # Join clause composition
-└── PayloadError.ts        # Structured error type
+├── PayloadError.ts        # Structured error type
+└── PayloadSDK.ts          # Main HTTP client
 internal/                  # Internal implementation (not exported, 1:1 portable)
 ├── contracts/             # Internal interfaces (IClause, IAuthCredential, IFileUpload)
 ├── upload/                # FormDataBuilder
