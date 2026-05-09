@@ -1,4 +1,5 @@
 import { PaginatedDocsDTO } from "./models/collection/PaginatedDocsDTO.js";
+import { BulkOperationDTO } from "./models/collection/BulkOperationDTO.js";
 import { DocumentDTO } from "./models/collection/DocumentDTO.js";
 import { TotalDocsDTO } from "./models/collection/TotalDocsDTO.js";
 import { LoginResultDTO } from "./models/auth/LoginResultDTO.js";
@@ -320,7 +321,7 @@ export class PayloadSDK {
    *
    * @returns {Promise<PaginatedDocsDTO>} The bulk result containing deleted documents.
    */
-  async delete(options: { slug: string; query: QueryBuilder; signal?: AbortSignal }): Promise<PaginatedDocsDTO> {
+  async delete(options: { slug: string; query: QueryBuilder; signal?: AbortSignal }): Promise<BulkOperationDTO> {
     const { slug, query, signal } = options;
     const url = this._appendQueryString({ url: `${this._baseUrl}/api/${encodeURIComponent(slug)}`, query });
     const method: HttpMethod = HttpMethod.DELETE;
@@ -330,7 +331,7 @@ export class PayloadSDK {
     };
 
     const json = await this._request({ url, config, signal }) ?? {};
-    const dto = PaginatedDocsDTO.fromJson(json);
+    const dto = BulkOperationDTO.fromJson(json);
 
     return dto;
   }
@@ -370,7 +371,7 @@ export class PayloadSDK {
    *
    * @returns {Promise<PaginatedDocsDTO>} The bulk result containing updated documents.
    */
-  async update(options: { slug: string; data: Json; query: QueryBuilder; file?: FileUpload; signal?: AbortSignal }): Promise<PaginatedDocsDTO> {
+  async update(options: { slug: string; data: Json; query: QueryBuilder; file?: FileUpload; signal?: AbortSignal }): Promise<BulkOperationDTO> {
     const { slug, data, query, file, signal } = options;
     const url = this._appendQueryString({ url: `${this._baseUrl}/api/${encodeURIComponent(slug)}`, query });
     const method: HttpMethod = HttpMethod.PATCH;
@@ -381,7 +382,7 @@ export class PayloadSDK {
     };
 
     const json = await this._request({ url, config, signal }) ?? {};
-    const dto = PaginatedDocsDTO.fromJson(json);
+    const dto = BulkOperationDTO.fromJson(json);
 
     return dto;
   }
