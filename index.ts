@@ -11,6 +11,7 @@ export * from './public/config/JwtAuth.js';
 export * from './public/models/collection/DocumentDTO.js';
 export * from './public/models/collection/PaginatedDocsDTO.js';
 export * from './public/models/collection/BulkOperationDTO.js';
+export * from './public/models/errors/BulkOperationErrorDTO.js';
 export * from './public/models/collection/TotalDocsDTO.js';
 export * from './public/models/auth/LoginResultDTO.js';
 export * from './public/models/auth/MeResultDTO.js';

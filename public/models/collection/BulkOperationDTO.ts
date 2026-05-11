@@ -1,13 +1,6 @@
 import { DocumentDTO } from "./DocumentDTO.js";
+import { BulkOperationErrorDTO } from "../errors/BulkOperationErrorDTO.js";
 import type { Json } from "../../../types/Json.js";
-
-/**
- * Represents a single error from a bulk operation.
- */
-export class BulkOperationError {
-  id: string = '';
-  message: string = '';
-}
 
 /**
  * Represents the result of a bulk write operation (update or delete).
@@ -15,7 +8,7 @@ export class BulkOperationError {
  */
 export class BulkOperationDTO {
   docs: DocumentDTO[] = [];
-  errors: BulkOperationError[] = [];
+  errors: BulkOperationErrorDTO[] = [];
 
   /**
    * Maps a bulk operation JSON response into a {@link BulkOperationDTO}.
@@ -38,7 +31,7 @@ export class BulkOperationDTO {
       dto.errors = data['errors']
         .filter((item): item is Json => typeof item === 'object' && item !== null && !Array.isArray(item))
         .map(item => {
-          const error = new BulkOperationError();
+          const error = new BulkOperationErrorDTO();
           if (typeof item['id'] === 'string') {
             error.id = item['id'];
           }
