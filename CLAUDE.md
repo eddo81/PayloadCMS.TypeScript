@@ -24,7 +24,7 @@ public/                    # Consumer-facing API surface (exported, 1:1 portable
 ├── models/                # DTOs with fromJson factory methods
 │   ├── auth/              # Auth DTOs
 │   ├── collection/        # Collection DTOs
-│   └── errors/            # Error DTOs (ErrorResultDTO)
+│   └── errors/            # Error DTOs (RequestErrorDTO)
 ├── query/                 # Fluent query builders
 │   ├── QueryBuilder.ts    # Facade over WhereBuilder + SelectBuilder + JoinBuilder
 │   ├── WhereBuilder.ts    # Where clause composition

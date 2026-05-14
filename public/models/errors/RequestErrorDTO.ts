@@ -1,12 +1,12 @@
 /**
  * Represents one entry in the `errors[]` array from a failed Payload CMS response.
  *
- * Payload's error shape is intentionally dynamic — only `name`, `message`, and `field`
+ * Payload's error response shape is intentionally dynamic — only `name`, `message`, and `field`
  * are guaranteed across all error types. The `json` property gives access to the full
  * raw entry, including the `data` block present on `ValidationError` and `APIError`
  * responses, which consumers can inspect and map to their own types.
  */
-export class ErrorResultDTO {
+export class RequestErrorDTO {
   /**
    * The full raw JSON for this `errors[n]` entry.
    */
@@ -43,15 +43,15 @@ export class ErrorResultDTO {
   }
 
   /**
-   * Creates an {@link ErrorResultDTO} from a single `errors[n]` item.
+   * Creates a {@link RequestErrorDTO} from a single `errors[n]` item.
    *
-   * @param json One entry from `ErrorResult.errors[]`.
+   * @param json One entry from `errors[]` in a failed Payload CMS response.
    */
-  static fromJson(json: Record<string, unknown>): ErrorResultDTO {
+  static fromJson(json: Record<string, unknown>): RequestErrorDTO {
     const name = typeof json['name'] === 'string' ? json['name'] : undefined;
     const message = typeof json['message'] === 'string' ? json['message'] : undefined;
     const field = typeof json['field'] === 'string' ? json['field'] : undefined;
 
-    return new ErrorResultDTO({ json, name, message, field });
+    return new RequestErrorDTO({ json, name, message, field });
   }
 }

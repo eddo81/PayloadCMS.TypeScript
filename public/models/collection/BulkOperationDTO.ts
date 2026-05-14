@@ -30,16 +30,7 @@ export class BulkOperationDTO {
     if (Array.isArray(data['errors'])) {
       dto.errors = data['errors']
         .filter((item): item is Json => typeof item === 'object' && item !== null && !Array.isArray(item))
-        .map(item => {
-          const error = new BulkOperationErrorDTO();
-          if (typeof item['id'] === 'string') {
-            error.id = item['id'];
-          }
-          if (typeof item['message'] === 'string') {
-            error.message = item['message'];
-          }
-          return error;
-        });
+        .map(item => BulkOperationErrorDTO.fromJson(item));
     }
 
     return dto;

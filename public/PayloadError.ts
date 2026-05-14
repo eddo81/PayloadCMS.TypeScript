@@ -1,4 +1,4 @@
-import { ErrorResultDTO } from './models/errors/ErrorResultDTO.js';
+import { RequestErrorDTO } from './models/errors/RequestErrorDTO.js';
 
 /**
  * A structured error thrown on failed Payload CMS requests.
@@ -31,7 +31,7 @@ export class PayloadError extends Error {
    * (`name`, `message`, `field`), plus a `json` escape hatch for richer types
    * such as `ValidationError`.
    */
-  public readonly result: ErrorResultDTO[];
+  public readonly result: RequestErrorDTO[];
 
   constructor(options: {
     statusCode: number;
@@ -64,7 +64,7 @@ export class PayloadError extends Error {
       this.serverStack = json['stack'];
     }
 
-    const result: ErrorResultDTO[] = [];
+    const result: RequestErrorDTO[] = [];
 
     if (json !== undefined && Array.isArray(json['errors'])) {
       for (const item of json['errors']) {
@@ -72,7 +72,7 @@ export class PayloadError extends Error {
           continue;
         }
 
-        result.push(ErrorResultDTO.fromJson(item as Record<string, unknown>));
+        result.push(RequestErrorDTO.fromJson(item as Record<string, unknown>));
       }
     }
 

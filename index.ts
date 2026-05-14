@@ -5,7 +5,7 @@ export * from './public/query/SelectBuilder.js';
 export * from './public/query/WhereBuilder.js';
 export * from './public/query/QueryBuilder.js';
 export * from './public/PayloadError.js';
-export * from './public/models/errors/ErrorResultDTO.js';
+export * from './public/models/errors/RequestErrorDTO.js';
 export * from './public/config/ApiKeyAuth.js';
 export * from './public/config/JwtAuth.js';
 export * from './public/models/collection/DocumentDTO.js';

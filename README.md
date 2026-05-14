@@ -955,7 +955,7 @@ Returned by paginated operations (`find`, `update`, `delete`, `findVersions`).
 | `ResetPasswordResultDTO` | `resetPassword()` | `user`, `token` |
 | `MessageDTO` | `forgotPassword()`, `verifyEmail()`, `logout()`, `unlock()` | `message` |
 
-### ErrorResultDTO
+### RequestErrorDTO
 
 Represents one entry in the `errors[]` array from a failed Payload response. Payload's error shape is intentionally dynamic — only the base fields below are guaranteed across all error types. The `json` property gives access to the full raw entry, including the `data` block present on `ValidationError` and `APIError` responses.
 
@@ -980,7 +980,7 @@ class PayloadError extends Error {
   readonly response: Response | undefined;
   readonly body: string | undefined;
   readonly serverStack: string | undefined;
-  readonly result: ErrorResultDTO[];
+  readonly result: RequestErrorDTO[];
 }
 ```
 
@@ -991,9 +991,9 @@ class PayloadError extends Error {
 | `message` | `string` | Human-readable status code message (from `Error`). |
 | `body` | `string \| undefined` | The raw unparsed JSON response body, if available. |
 | `serverStack` | `string \| undefined` | Server-side stack trace. Payload includes this in development mode only. |
-| `result` | `ErrorResultDTO[]` | Parsed entries from `errors[]` in the response body. |
+| `result` | `RequestErrorDTO[]` | Parsed entries from `errors[]` in the response body. |
 
-Each entry in `result` is an [`ErrorResultDTO`](#errorresultdto).
+Each entry in `result` is an [`RequestErrorDTO`](#errorresultdto).
 
 ### Basic usage
 
@@ -1035,7 +1035,7 @@ interface ValidationError {
   fieldErrors: ValidationFieldError[];
 }
 
-function fromJson(entry: ErrorResultDTO): ValidationError | null {
+function fromJson(entry: RequestErrorDTO): ValidationError | null {
   if (entry.name !== 'ValidationError') {
     return null;
   }
